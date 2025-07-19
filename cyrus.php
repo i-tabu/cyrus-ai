@@ -50,7 +50,7 @@ function load_layers($dir = "layers", $max_layer = 100) {
     return $layers;
 }
 
-function predict($layers, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!']) {
+function predict($layers, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!'], $rand = 0) {
     $current = $prefix;
 
     while (strlen($current) < $max_len) {
@@ -68,11 +68,20 @@ function predict($layers, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!']
 
         if (empty($candidates)) break;
 
+        // Sort candidates by score descending
         arsort($candidates);
-        $next_seq = array_key_first($candidates);
+        $keys = array_keys($candidates);
+
+        // Apply randomness
+        $index = 0;
+        if ($rand > 0) {
+            $index = rand(0, min($rand, count($keys) - 1));
+        }
+
+        $next_seq = $keys[$index];
         $current = $next_seq;
 
-        // 🔹 Check if the last char is a sentence ender
+        // Stop if ends with punctuation
         $last_char = substr($current, -1);
         if (in_array($last_char, $stop_chars)) {
             break;
@@ -80,6 +89,25 @@ function predict($layers, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!']
     }
 
     return $current;
+}
+
+function parse_input($line) {
+    // Handle escaped characters
+    $line = preg_replace('/\\\\#/', '<<ESC_HASH>>', $line);
+    $line = preg_replace('/\\\\\\\\/', '<<ESC_BACK>>', $line);
+
+    // Extract #rand=X
+    $rand = 0;
+    if (preg_match('/#rand=(\d+)/', $line, $m)) {
+        $rand = intval($m[1]);
+        $line = preg_replace('/#rand=\d+/', '', $line);
+    }
+
+    // Restore escaped chars
+    $line = str_replace('<<ESC_HASH>>', '#', $line);
+    $line = str_replace('<<ESC_BACK>>', '\\', $line);
+
+    return [trim($line), $rand];
 }
 
 // === RUN CYRUS ===
@@ -97,9 +125,11 @@ echo "Cyrus is ready. Type a prefix:\n";
 $handle = fopen("php://stdin", "r");
 while (true) {
     echo "Cyrus> ";
-    $line = trim(fgets($handle));
+    $line = trim(fgets(STDIN));
     if ($line === "exit") break;
-    $result = predict($layers, $line, 100);
+
+    [$clean_line, $rand] = parse_input($line);
+    $result = predict($layers, $clean_line, 100, ['.', '?', '!'], $rand);
     echo "Cyrus says: $result\n";
 }
 
