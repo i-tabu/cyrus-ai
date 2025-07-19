@@ -50,7 +50,7 @@ function load_layers($dir = "layers", $max_layer = 100) {
     return $layers;
 }
 
-function predict($layers, $prefix, $max_len = 100) {
+function predict($layers, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!']) {
     $current = $prefix;
 
     while (strlen($current) < $max_len) {
@@ -68,10 +68,15 @@ function predict($layers, $prefix, $max_len = 100) {
 
         if (empty($candidates)) break;
 
-        // get best match
         arsort($candidates);
         $next_seq = array_key_first($candidates);
         $current = $next_seq;
+
+        // 🔹 Check if the last char is a sentence ender
+        $last_char = substr($current, -1);
+        if (in_array($last_char, $stop_chars)) {
+            break;
+        }
     }
 
     return $current;
