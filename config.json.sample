@@ -1,0 +1,6 @@
+{
+  "ssdb_host": "localhost",
+  "ssdb_port": 8888,
+  "ssdb_auth": ""
+}
+
