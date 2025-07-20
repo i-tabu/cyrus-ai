@@ -1,6 +1,6 @@
 <?php
 
-function train($corpus, $max_layer = 100, $chunk_size = 10000, $min_score = 2) {
+function train($corpus, $max_layer = 7, $chunk_size = 10000, $min_score = 2) {
     $layers = array_fill(0, $max_layer, []);
 
     $length = strlen($corpus);

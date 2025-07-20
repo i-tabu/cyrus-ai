@@ -11,7 +11,7 @@ function getSSDB() {
     return $ssdb;
 }
 
-function train($file, $trust = 1, $max_layer = 100) {
+function train($file, $trust = 1, $max_layer = 7) {
     $ssdb = getSSDB();
 
     $handle = fopen($file, "r");
@@ -33,7 +33,7 @@ function train($file, $trust = 1, $max_layer = 100) {
             }
         }
 
-        if (++$count % 1000 === 0) {
+        if (++$count % 100 === 0) {
             echo "Processed $count lines...\n";
         }
     }
@@ -44,7 +44,7 @@ function train($file, $trust = 1, $max_layer = 100) {
 
 // --- Entry Point ---
 $args = $argv;
-$trust = 1;
+$trust = 10;
 
 if (count($args) < 2) {
     echo "Usage: php train.php <corpus.txt> [--trust=10]\n";

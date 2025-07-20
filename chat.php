@@ -27,12 +27,13 @@ function parse_input($line) {
 function predict_ssdb($ssdb, $prefix, $max_len = 100, $stop_chars = ['.', '?', '!'], $rand = 0) {
     $current = $prefix;
 
+    $max_layers = 100;
     while (strlen($current) < $max_len) {
         $layer_idx = strlen($current) + 1; // layer names are 1-based
         $layer_key = "cyrus_l$layer_idx";
 
         //$res = $ssdb->zscan($layer_key, $current, $current . "z", 1000); // get all with matching prefix
-        $res = $ssdb->zscan($layer_key, $current, "", "", 1000); // empty end = till end
+        $res = $ssdb->zrscan($layer_key, $current, "", "", 1000); // empty end = till end
 
         if (!$res || count($res) === 0) break;
 
@@ -44,7 +45,18 @@ function predict_ssdb($ssdb, $prefix, $max_len = 100, $stop_chars = ['.', '?', '
             }
         }
 
-        if (empty($matches)) break;
+
+        $max_layers--;
+        if ($max_layers <= 0) {
+            break;
+        }
+        if (empty($matches)) {
+            $layer_idx++; // layer names are 1-based
+            $layer_key = "cyrus_l$layer_idx";
+            
+            //break;
+            continue;
+        }
 
         arsort($matches); // sort by score descending
         $keys = array_keys($matches);
@@ -58,7 +70,9 @@ function predict_ssdb($ssdb, $prefix, $max_len = 100, $stop_chars = ['.', '?', '
         $current = $next_seq;
 
         $last_char = substr($current, -1);
-        if (in_array($last_char, $stop_chars)) break;
+        if(!empty($stop_chars)){
+            if (in_array($last_char, $stop_chars)) break;
+        }
     }
 
     return $current;
@@ -76,7 +90,11 @@ while (true) {
     if ($line === "exit" || $line == "quit") break;
 
     [$prefix, $rand] = parse_input($line);
-    $response = predict_ssdb($ssdb, strtolower($prefix), 100, ['.', '?', '!'], $rand);
+    if(empty($rand)) $rand = rand(0,7);
+    $stop_chars = ['.', '?', '!'];
+    //$stop_chars = ['.'];
+    $prefix = substr($prefix, -5);
+    $response = predict_ssdb($ssdb, strtolower($prefix), 100, $stop_chars, $rand);
     echo "Cyrus> $response\n";
 }
 
