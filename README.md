@@ -9,6 +9,7 @@ php cyrus.php
 ```
 Example Output
 ```
-Cyrus is ready. Type a prefix:
-Cyrus> 
+php chat.php
+Cyrus is listening...
+You>
 ```
